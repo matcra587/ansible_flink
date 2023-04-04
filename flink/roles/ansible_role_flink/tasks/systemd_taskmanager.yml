@@ -1,0 +1,27 @@
+---
+- name: Install systemd unit
+  become: true
+  template:
+    src: taskmanager.service.j2
+    dest: /etc/systemd/system/taskmanager.service
+    mode: 0644
+
+- name: Ensure JobManager RPC address is set
+  ansible.builtin.lineinfile:
+    path: "{{ flink_dir }}/conf/flink-conf.yaml"
+    regexp: "^jobmanager.rpc.address"
+    line: "jobmanager.rpc.address: 172.23.0.2"
+
+- name: Ensure number of TaskSlots is set
+  ansible.builtin.lineinfile:
+    path: "{{ flink_dir }}/conf/flink-conf.yaml"
+    regexp: "^taskmanager.numberOfTaskSlots"
+    line: "taskmanager.numberOfTaskSlots: 2"
+
+- name: Launch Flink TaskManager
+  become: true
+  systemd:
+    name: taskmanager
+    state: restarted
+    daemon_reload: true
+    enabled: true

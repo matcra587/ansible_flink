@@ -1,0 +1,48 @@
+---
+- name: Install Java 8
+  package:
+    name: "{{ jdk_ver }}"
+    state: present
+
+- name: Create directory
+  become: true
+  file:
+    path: '{{ flink_dir }}'
+    state: directory
+  register: flink_directory
+
+- name: Create directory
+  become: true
+  file:
+    path: '{{ flink_dir }}/conf'
+    state: directory
+
+- name: Create directory
+  become: true
+  file:
+    path: '{{ flink_dir }}/nfs'
+    state: directory
+
+- name: Download and extract
+  become: true
+  unarchive:
+    src: '{{ flink_url }}'
+    dest: '{{ flink_dir }}'
+    remote_src: true
+    extra_opts: [--strip-components=1] # remove the top level directory
+  when: flink_directory.changed
+
+- name: Apply configuration
+  template:
+    src: '{{ item }}.j2'
+    dest: '{{ flink_dir }}/conf/{{ item }}'
+  with_items:
+    - flink-conf.yaml
+
+- name: Start master
+  include_tasks: systemd_jobmanager.yml
+  when: flink_type == "master"
+
+- name: Start slaves
+  include_tasks: systemd_taskmanager.yml
+  when: flink_type == "slave"

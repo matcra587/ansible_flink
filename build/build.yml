@@ -1,0 +1,56 @@
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Build image
+      community.docker.docker_image:
+        name: alma_ssh:latest
+        build:
+          path: .
+          cache_from: almalinux:latest
+        source: build
+      register: build
+
+    - name: Create a network
+      community.docker.docker_network:
+        name: backend
+
+    - name: Create a volume
+      community.docker.docker_volume:
+        name: flink_data
+
+    - name: "Launch Flink Containers"
+      community.docker.docker_container:
+        name: "{{ item.name }}"
+        image: "alma_ssh:latest"
+        state: started
+        privileged: true
+        volumes:
+          - "flink_data:/opt/nfs"
+        networks:
+          - name: backend
+        ports: "{{ item.ports }}"
+      loop:
+        - { name: jobmanager, ports: [ "2222:22", "6123", "8081:8081" ] }
+        - { name: taskmanager-1, ports: [ "2223:22", "6123" ] }
+        - { name: taskmanager-2, ports: [ "2224:22", "6123" ] }
+
+    - name: "Launch Zookeeper Containers"
+      community.docker.docker_container:
+        name: "{{ item.name }}"
+        image: "zookeeper:latest"
+        state: started
+        volumes:
+          - "flink_data:/opt/nfs"
+        env:
+          ZOO_MY_ID: "{{index + 1 | int}}"
+          ZOO_SERVERS: "server.1=zookeeper-1:2888:3888;2181 server.2=zookeeper-2:2888:3888;2181 server.3=zookeeper-3:2888:3888;2181"
+        networks:
+          - name: backend
+        ports: "{{ item.ports }}"
+      loop:
+        - { name: zookeeper-1, ports: [ "2181:2181" ] }
+        - { name: zookeeper-2, ports: [ "2182:2181" ] }
+        - { name: zookeeper-3, ports: [ "2183:2181" ] }
+      loop_control:
+        index_var: index

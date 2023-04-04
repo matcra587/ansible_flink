@@ -1,0 +1,5 @@
+jdk_ver: java-1.8.0-openjdk
+
+flink_dir: /opt/flink
+
+flink_url: https://dlcdn.apache.org/flink/flink-1.17.0/flink-1.17.0-bin-scala_2.12.tgz

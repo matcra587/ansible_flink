@@ -1,0 +1,8 @@
+---
+- hosts:
+    - jobmanager
+    - taskmanager
+  gather_facts: false
+  become: true
+  roles:
+    - role: ansible_role_flink

@@ -1,0 +1,51 @@
+---
+- name: Install systemd unit
+  become: true
+  template:
+    src: jobmanager.service.j2
+    dest: /etc/systemd/system/jobmanager.service
+    mode: 0644
+
+- name: Ensure JobManager RPC address is set
+  ansible.builtin.lineinfile:
+    path: "{{ flink_dir }}/conf/flink-conf.yaml"
+    regexp: "^jobmanager.rpc.address"
+    line: "jobmanager.rpc.address: jobmanager"
+
+- name: Ensure JobManager host address is set
+  ansible.builtin.lineinfile:
+    path: "{{ flink_dir }}/conf/flink-conf.yaml"
+    regexp: "^taskmanager.host"
+    line: "taskmanager.host: 0.0.0.0"
+
+- name: Ensure JobManager RPC address is set
+  ansible.builtin.lineinfile:
+    path: "{{ flink_dir }}/conf/flink-conf.yaml"
+    regexp: "^jobmanager.bind-host"
+    line: "jobmanager.bind-host: 0.0.0.0"
+
+- name: Ensure JobManager WebUI is accessible
+  ansible.builtin.lineinfile:
+    path: "{{ flink_dir }}/conf/flink-conf.yaml"
+    regexp: "^rest.bind-address"
+    line: "rest.bind-address: 0.0.0.0"
+
+- name: Ensure Blob Server port is set
+  ansible.builtin.lineinfile:
+    path: "{{ flink_dir }}/conf/flink-conf.yaml"
+    line: "blob.server.port: 6124"
+    create: true
+
+- name: Ensure Query Server port is set
+  ansible.builtin.lineinfile:
+    path: "{{ flink_dir }}/conf/flink-conf.yaml"
+    line: "query.server.port: 6125"
+    create: true
+
+- name: Launch Flink JobManager
+  become: true
+  systemd:
+    name: jobmanager
+    state: restarted
+    daemon_reload: true
+    enabled: true
